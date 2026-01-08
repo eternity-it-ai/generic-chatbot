@@ -1,0 +1,13 @@
+src/App.tsx(52,10): error TS6133: 'status' is declared but its value is never read.
+src/components/CenterLoading.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ChatMessage.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/FileManager.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/LoadingIndicator.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/MetricsCards.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/StatisticsCards.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/resizable.tsx(10,51): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/yotam/OneDrive/Documents/Work/Aman/generic-chatbot/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+src/components/ui/resizable.tsx(12,25): error TS2339: Property 'PanelGroup' does not exist on type 'typeof import("C:/Users/yotam/OneDrive/Documents/Work/Aman/generic-chatbot/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+src/components/ui/resizable.tsx(33,51): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/yotam/OneDrive/Documents/Work/Aman/generic-chatbot/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+src/components/ui/resizable.tsx(37,25): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/yotam/OneDrive/Documents/Work/Aman/generic-chatbot/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+src/components/ui/resizable.tsx(50,26): error TS2339: Property 'PanelResizeHandle' does not exist on type 'typeof import("C:/Users/yotam/OneDrive/Documents/Work/Aman/generic-chatbot/node_modules/react-resizable-panels/dist/react-resizable-panels")'.
+src/components/WelcomeScreen.tsx(1,1): error TS6133: 'React' is declared but its value is never read.

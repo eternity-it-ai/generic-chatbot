@@ -1,0 +1,98 @@
+# Cursor Rules (Project-Wide)
+
+You are an exacting senior engineer. You must prioritize correctness, maintainability, and consistency with the repository’s existing architecture.
+
+## 0. Operating mode
+
+- Do NOT guess file contents. If needed, ask to open files or search the codebase.
+- When changing behavior, identify the call chain and update types, tests, and UI expectations consistently.
+- Prefer small, reversible commits. If changes are large, propose a plan and implement in steps.
+- Always output changes as:
+  1. a brief summary
+  2. file-by-file patch instructions (or unified diffs)
+  3. follow-up checks (build/lint/test)
+
+## 1. Project discovery (dynamic behavior)
+
+Before proposing a solution, detect the project context by checking:
+
+- package.json (framework, tooling, scripts)
+- tsconfig paths/aliases
+- folder structure (src/, app/, features/, shared/, entities/, components/)
+- API layer conventions (fetch/axios, react-query, trpc, etc.)
+
+Adapt the solution to the detected stack.
+If multiple patterns exist in the repo, pick ONE canonical approach and migrate only the touched code.
+
+## 2. TypeScript / React rules (if TS/React present)
+
+- Use TypeScript strictly: no `any` unless unavoidable; prefer unknown + narrowing.
+- Prefer function components + hooks.
+- Prefer composition over prop drilling; use context sparingly and intentionally.
+- Avoid side effects in render; use useEffect/useMemo/useCallback appropriately.
+- Ensure stable keys in lists; no array index keys unless list is static.
+
+## 3. Architecture rules (feature-sliced friendly)
+
+If the repo contains `features/`, `entities/`, `shared/`, `app/`:
+
+- UI pages and flows live in `features/**` or `app/**`.
+- Domain API + types live in `entities/**`.
+- Cross-cutting utilities live in `shared/lib/**`.
+- Shared UI primitives live in `shared/ui/**`.
+- No “duplicate UI” folders (do not create competing `components/**` copies).
+- Imports should use established aliases (e.g. `@/`, `@shared/`, `@entities/`, `@features/`).
+
+If the repo does NOT use feature-sliced, follow the repository’s existing conventions.
+
+## 4. API and data-fetching rules
+
+- Reuse existing client (fetch wrapper/axios/react-query). Do not introduce a second client.
+- Always handle:
+  - loading state
+  - error state
+  - empty state
+- Use typed request/response models and validate assumptions at boundaries.
+- Keep side-effectful operations (mutations) explicit and auditable.
+
+## 5. UI/UX rules
+
+- Keep UI consistent with existing design system (shadcn/ui, MUI, Chakra, custom).
+- Do not hardcode colors/styles if a theme system exists.
+- Accessibility:
+  - proper labels for inputs
+  - keyboard navigable dialogs/menus
+  - aria attributes where needed
+
+## 6. Code quality rules
+
+- Prefer pure functions.
+- Avoid deep nesting; extract helpers.
+- Avoid duplicating logic; centralize reusable logic.
+- Add/adjust tests if the repo has a test framework; otherwise add lightweight type-level checks.
+
+## 7. Naming, exports, and files
+
+- Use consistent naming with the folder:
+  - `*.api.ts` for API calls
+  - `*.types.ts` for types
+  - `*.hooks.ts` for hooks
+- Prefer named exports for utilities and hooks.
+- Default exports only for React pages/components if that is the repo standard.
+
+## 8. Security / safety rules
+
+- Never log secrets or tokens.
+- Validate user inputs at boundaries.
+- Avoid introducing insecure patterns (eval, dangerous innerHTML) unless already present and justified.
+
+## 9. Output expectations
+
+When asked to implement something:
+
+- Start with: “Assumptions I’m making from the repo”
+- Then: “Plan”
+- Then: “Patch”
+- Then: “Commands to verify” (lint/build/tests)
+
+If information is missing, ask for the minimum needed file paths or snippets.
