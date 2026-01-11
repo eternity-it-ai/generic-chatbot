@@ -5,13 +5,31 @@ import pandas as pd
 import numpy as np
 
 # If you keep langchain:
-from langchain_openai import ChatOpenAI
+try:
+    from langchain_openai import ChatOpenAI
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    GEMINI_AVAILABLE = True
+except ImportError as e:
+    import sys
+    print(f"Warning: Could not import langchain_google_genai: {e}", file=sys.stderr)
+    from langchain_openai import ChatOpenAI
+    GEMINI_AVAILABLE = False
 
 STATE = {
     "df": None,
     "metadata": None,
     "loaded_name": None,
 }
+
+
+def _get_llm(model: str, api_key: str):
+    """Factory function to get the appropriate LLM based on model name."""
+    if model.startswith("gemini"):
+        if not GEMINI_AVAILABLE:
+            raise ValueError("Gemini models are not available. Please install langchain-google-genai.")
+        return ChatGoogleGenerativeAI(temperature=0, model=model, google_api_key=api_key)
+    else:
+        return ChatOpenAI(temperature=0, model=model, openai_api_key=api_key)
 
 
 def _reply(ok: bool, result=None, error: str | None = None):
@@ -150,7 +168,7 @@ def cmd_generate_metadata(payload: dict):
     if not api_key:
         raise ValueError("openai_api_key is required")
 
-    llm = ChatOpenAI(temperature=0, model=model, openai_api_key=api_key)
+    llm = _get_llm(model, api_key)
     md = generate_metadata(STATE["df"], llm)
     if not md:
         raise RuntimeError("Failed to generate metadata")
@@ -236,7 +254,7 @@ def cmd_run_analysis(payload: dict):
     if not query:
         raise ValueError("query is required")
 
-    llm = ChatOpenAI(temperature=0, model=model, openai_api_key=api_key)
+    llm = _get_llm(model, api_key)
     answer = run_analysis(query, STATE["df"], llm, STATE["metadata"])
     return {"answer": answer}
 
@@ -260,6 +278,8 @@ def handle(msg: dict):
 
 
 def main():
+    import sys
+    print("Backend started", file=sys.stderr, flush=True)
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -269,7 +289,11 @@ def main():
             result = handle(msg)
             _reply(True, result=result)
         except Exception as e:
-            _reply(False, error=str(e))
+            import traceback
+            error_msg = str(e)
+            traceback_str = traceback.format_exc()
+            print(f"Backend error: {error_msg}\n{traceback_str}", file=sys.stderr, flush=True)
+            _reply(False, error=error_msg)
 
 
 if __name__ == "__main__":

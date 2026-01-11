@@ -131,4 +131,39 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Production Mode Restrictions */
+  .production-mode {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .production-mode input,
+  .production-mode textarea,
+  .production-mode [contenteditable="true"],
+  .production-mode .markdown-content,
+  .production-mode [data-selectable="true"],
+  .production-mode .select-text {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+  }
+
+  .production-mode img {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+
+  /* Ensure markdown content is selectable */
+  .markdown-content {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+
+  .markdown-content * {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 }
