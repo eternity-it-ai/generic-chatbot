@@ -3,3 +3,4 @@ numpy
 langchain-openai
 langchain-google-genai
 openai
+charset-normalizer

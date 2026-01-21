@@ -1,38 +1,23 @@
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { memo, useState } from "react";
+import { Copy, Check, User } from "lucide-react";
 import type { Message } from "@/shared/types";
 import MarkdonwText from "@/shared/ui/complete/MarkdonwText";
+import { copyToClipboard } from "@/shared/utils/clipboard";
 
 interface ChatMessageProps {
   message: Message;
+  logoUrl?: string | null;
 }
 
-export default function ChatMessage({ message }: ChatMessageProps) {
+function ChatMessage({ message, logoUrl }: ChatMessageProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
+    const success = await copyToClipboard(message.content);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy text:", err);
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = message.content;
-      textArea.style.position = "fixed";
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (fallbackErr) {
-        console.error("Fallback copy failed:", fallbackErr);
-      }
-      document.body.removeChild(textArea);
     }
   };
 
@@ -50,25 +35,20 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       >
         {/* Avatar */}
         <div
-          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            isUser ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium overflow-hidden ${
+            isUser ? "bg-transparent text-white" : "bg-gray-200 text-gray-600"
           }`}
         >
           {isUser ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="User"
+                className="w-full h-full object-cover"
               />
-            </svg>
+            ) : (
+              <User className="h-5 w-5" />
+            )
           ) : (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -124,3 +104,5 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     </div>
   );
 }
+
+export default memo(ChatMessage);

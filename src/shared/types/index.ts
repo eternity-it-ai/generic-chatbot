@@ -1,4 +1,4 @@
-export type BackendOk = { ok: true; result: any };
+export type BackendOk = { ok: true; result: unknown };
 export type BackendErr = { ok: false; error: string };
 export type BackendResponse = BackendOk | BackendErr;
 
@@ -37,3 +37,5 @@ export type Branding = {
   configuredAt: string;
   payload: BrandingPayload;
 };
+
+export type { BotId } from "@/shared/constants/bots";

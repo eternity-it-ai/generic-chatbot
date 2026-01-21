@@ -166,4 +166,42 @@
     user-select: text;
     -webkit-user-select: text;
   }
+
+  /* Error Toast Styling - Make errors stand out with red background */
+  [data-sonner-toast][data-type="error"] {
+    background: var(--destructive) !important;
+    color: white !important;
+    border: 2px solid var(--destructive) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  [data-sonner-toast][data-type="error"] [data-title] {
+    color: white !important;
+    font-weight: 600 !important;
+  }
+
+  [data-sonner-toast][data-type="error"] [data-description] {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  [data-sonner-toast][data-type="error"] svg {
+    color: white !important;
+  }
+
+  [data-sonner-toast][data-type="error"] button[data-close-button] {
+    color: white !important;
+    opacity: 0.8;
+  }
+
+  [data-sonner-toast][data-type="error"] button[data-close-button]:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Dark mode error toast */
+  .dark [data-sonner-toast][data-type="error"] {
+    background: var(--destructive) !important;
+    border: 2px solid var(--destructive) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+  }
 }

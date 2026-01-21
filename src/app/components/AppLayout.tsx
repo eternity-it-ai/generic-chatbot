@@ -4,7 +4,9 @@ import CenterLoading from "@/shared/components/CenterLoading";
 import SetupScreen from "@/features/branding/components/SetupScreen";
 import SettingsSidebar from "@/features/settings/components/SettingsSidebar";
 import WelcomeScreen from "@/features/welcome/components/WelcomeScreen";
+import { ErrorBanner } from "@/shared/components/ErrorBanner";
 import type { Branding, Metadata } from "@/shared/types";
+import type { AppError } from "@/shared/errors/errorTypes";
 
 interface AppLayoutProps {
   brandingStatus: string;
@@ -24,6 +26,10 @@ interface AppLayoutProps {
   onResetApp: () => void;
   onFileSelect: (file: File) => void;
   onBrandingConfigured: (branding: Branding) => void;
+  criticalError?: AppError | null;
+  onDismissCriticalError?: () => void;
+  onRetryCriticalError?: () => void;
+  apiKeyError?: string | null;
   children?: ReactNode;
 }
 
@@ -45,6 +51,10 @@ export default function AppLayout({
   onResetApp,
   onFileSelect,
   onBrandingConfigured,
+  criticalError,
+  onDismissCriticalError,
+  onRetryCriticalError,
+  apiKeyError,
   children,
 }: AppLayoutProps) {
   const renderContent = () => {
@@ -70,10 +80,20 @@ export default function AppLayout({
           onModelChange={onModelChange}
           branding={branding}
           logoUrl={logoUrl}
+          apiKeyError={apiKeyError}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-scroll flex flex-col">
+          {criticalError && (
+            <div className="px-6 pt-4">
+              <ErrorBanner
+                error={criticalError}
+                onDismiss={onDismissCriticalError}
+                onRetry={onRetryCriticalError}
+              />
+            </div>
+          )}
+          <div className="flex-1 overflow-auto flex flex-col">
             {isLoadingCsv ? (
               <CenterLoading message={loadingMessage} />
             ) : !showChat ? (

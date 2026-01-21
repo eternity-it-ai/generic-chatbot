@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { Metadata, Branding } from "@/shared/types";
 import ModelSelect from "./ModelSelect";
 import {
@@ -6,6 +7,7 @@ import {
 } from "@/features/branding/constants/branding";
 import { Sparkles, Key, Brain, ChevronDown } from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
+import { FieldError } from "@/shared/ui/field";
 
 interface SettingsSidebarProps {
   apiKey: string;
@@ -17,6 +19,7 @@ interface SettingsSidebarProps {
   onModelChange: (model: string) => void;
   branding: Branding | null;
   logoUrl: string | null;
+  apiKeyError?: string | null;
 }
 
 export default function SettingsSidebar({
@@ -29,7 +32,12 @@ export default function SettingsSidebar({
   onModelChange,
   branding,
   logoUrl,
+  apiKeyError,
 }: SettingsSidebarProps) {
+  // Clear error when user starts typing
+  const handleApiKeyChange = (key: string) => {
+    onApiKeyChange(key);
+  };
   return (
     <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
       {/* Eternity Branding at Top - Sticky */}
@@ -128,9 +136,22 @@ export default function SettingsSidebar({
                 <input
                   type="password"
                   value={apiKey}
-                  onChange={(e) => onApiKeyChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    apiKeyError
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
+                  aria-invalid={!!apiKeyError}
+                  aria-describedby={apiKeyError ? "api-key-error" : undefined}
                 />
+                {apiKeyError && (
+                  <FieldError
+                    id="api-key-error"
+                    className="mt-1"
+                    errors={[{ message: apiKeyError }]}
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

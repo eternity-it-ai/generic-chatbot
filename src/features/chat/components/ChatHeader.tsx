@@ -6,7 +6,10 @@ interface ChatHeaderProps {
   onNewFile: (file: File) => void;
 }
 
-export default function ChatHeader({ onNewChat, onNewFile }: ChatHeaderProps) {
+export default function ChatHeader({
+  onNewChat,
+  onNewFile,
+}: ChatHeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewFileClick = () => {

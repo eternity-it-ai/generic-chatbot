@@ -1,4 +1,6 @@
-const API_BASE_URL =  "https://generic-chatbot-backend-971727032739.europe-west1.run.app";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://generic-chatbot-backend-614130621691.europe-west1.run.app";
 
 export async function redeemCode(code: string) {
   const controller = new AbortController();
@@ -37,8 +39,13 @@ export async function redeemCode(code: string) {
     if (error.name === "AbortError") {
       throw new Error("Cannot reach server (timeout)");
     }
-    if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-      throw new Error("Cannot reach server. Please check your internet connection.");
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw new Error(
+        "Cannot reach server. Please check your internet connection."
+      );
     }
     throw error;
   }

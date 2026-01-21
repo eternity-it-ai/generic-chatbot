@@ -1,3 +1,5 @@
+import { BOT_IDS, DEFAULT_BOT_ID, type BotId } from "@/shared/constants/bots";
+
 const STORAGE_KEYS = {
   API_KEY: "app_api_key",
   REMEMBER_KEY: "app_remember_key",
@@ -5,12 +7,17 @@ const STORAGE_KEYS = {
   COMPANY_NAME: "app_company_name",
   COMPANY_URL: "app_company_url",
   LOGO_URL: "app_logo_url",
+  BOT_ID: "app_bot_id",
   CSV_NAME: "app_csv_name",
   CSV_BASE64: "app_csv_base64",
   CSV_LOADED: "app_csv_loaded",
   METADATA: "app_metadata",
   MESSAGES: "app_messages",
 } as const;
+
+function isBotId(value: unknown): value is BotId {
+  return typeof value === "string" && (BOT_IDS as readonly string[]).includes(value);
+}
 
 export function saveToStorage(key: string, value: unknown): void {
   try {
@@ -21,6 +28,11 @@ export function saveToStorage(key: string, value: unknown): void {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.error(`Failed to save to localStorage: ${key}`, error);
+    // Re-throw as a storage error for proper error handling
+    if (error instanceof DOMException && error.name === "QuotaExceededError") {
+      throw new Error("Storage quota exceeded. Please free up some space and try again.");
+    }
+    throw new Error(`Failed to save data: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -31,6 +43,15 @@ export function loadFromStorage<T>(key: string): T | null {
     return JSON.parse(item) as T;
   } catch (error) {
     console.error(`Failed to load from localStorage: ${key}`, error);
+    // If it's a JSON parse error, clear the corrupted data
+    if (error instanceof SyntaxError) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // Ignore removal errors
+      }
+      return null;
+    }
     return null;
   }
 }
@@ -60,6 +81,14 @@ export const storage = {
   // Model
   getModel: (): string => loadFromStorage<string>(STORAGE_KEYS.MODEL) ?? "gpt-4o",
   setModel: (value: string): void => saveToStorage(STORAGE_KEYS.MODEL, value),
+
+  // Bot persona
+  getBotId: (): BotId =>
+    (() => {
+      const raw = loadFromStorage<unknown>(STORAGE_KEYS.BOT_ID);
+      return isBotId(raw) ? raw : DEFAULT_BOT_ID;
+    })(),
+  setBotId: (value: BotId): void => saveToStorage(STORAGE_KEYS.BOT_ID, value),
   
   // Company
   getCompanyName: (): string =>

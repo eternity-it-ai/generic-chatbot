@@ -29,3 +29,6 @@ dist-ssr
 **/.venv/
 .env
 
+# Remove Release Files
+**/release/
+**/debug/
