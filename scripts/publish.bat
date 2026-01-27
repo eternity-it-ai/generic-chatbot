@@ -138,7 +138,7 @@ rem Write update.json (latest)
 >> "%LATEST_UPDATE_JSON%" echo   "platforms": {
 >> "%LATEST_UPDATE_JSON%" echo     "windows-x86_64": {
 >> "%LATEST_UPDATE_JSON%" echo       "signature": "%SIG%",
->> "%LATEST_UPDATE_JSON%" echo       "url": "https://raw.githubusercontent.com/yotam-aman/EternityAi-Ai-Agent-versions/main/update.exe"
+>> "%LATEST_UPDATE_JSON%" echo       "url": "https://raw.githubusercontent.com/eternity-it-ai/EternityAi-Ai-Agent-versions/main/update.exe"
 >> "%LATEST_UPDATE_JSON%" echo     }
 >> "%LATEST_UPDATE_JSON%" echo   }
 >> "%LATEST_UPDATE_JSON%" echo }
@@ -150,7 +150,7 @@ rem Write update.json (archived per-version)
 >> "%VERSION_UPDATE_JSON%" echo   "platforms": {
 >> "%VERSION_UPDATE_JSON%" echo     "windows-x86_64": {
 >> "%VERSION_UPDATE_JSON%" echo       "signature": "%SIG%",
->> "%VERSION_UPDATE_JSON%" echo       "url": "https://raw.githubusercontent.com/yotam-aman/EternityAi-Ai-Agent-versions/main/releases/v%VERSION%/update.exe"
+>> "%VERSION_UPDATE_JSON%" echo       "url": "https://raw.githubusercontent.com/eternity-it-ai/EternityAi-Ai-Agent-versions/main/releases/v%VERSION%/update.exe"
 >> "%VERSION_UPDATE_JSON%" echo     }
 >> "%VERSION_UPDATE_JSON%" echo   }
 >> "%VERSION_UPDATE_JSON%" echo }

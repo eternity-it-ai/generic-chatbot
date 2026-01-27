@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { showAppError, showError } from "@/shared/errors/toastService";
+import { showAppError } from "@/shared/errors/toastService";
 import { toAppError, isCriticalError } from "@/shared/errors/errorUtils";
 import type { AppError } from "@/shared/errors/errorTypes";
 

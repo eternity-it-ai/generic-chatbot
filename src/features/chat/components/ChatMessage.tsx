@@ -96,7 +96,7 @@ function ChatMessage({ message, logoUrl }: ChatMessageProps) {
             )}
           </button>
 
-          <div className="whitespace-pre-wrap break-words leading-relaxed text-[15px] select-text">
+          <div className="leading-relaxed text-[15px] select-text">
             <MarkdonwText>{message.content}</MarkdonwText>
           </div>
         </div>

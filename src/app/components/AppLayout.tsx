@@ -4,6 +4,7 @@ import CenterLoading from "@/shared/components/CenterLoading";
 import SetupScreen from "@/features/branding/components/SetupScreen";
 import SettingsSidebar from "@/features/settings/components/SettingsSidebar";
 import WelcomeScreen from "@/features/welcome/components/WelcomeScreen";
+import OnboardingScreen from "@/features/onboarding/components/OnboardingScreen";
 import { ErrorBanner } from "@/shared/components/ErrorBanner";
 import type { Branding, Metadata } from "@/shared/types";
 import type { AppError } from "@/shared/errors/errorTypes";
@@ -13,6 +14,7 @@ interface AppLayoutProps {
   branding: Branding | null;
   logoUrl: string | null;
   companyName: string;
+  onboardingCompleted: boolean;
   isLoadingCsv: boolean;
   loadingMessage: string;
   showChat: boolean;
@@ -23,6 +25,8 @@ interface AppLayoutProps {
   onApiKeyChange: (key: string) => void;
   onRememberKeyChange: (remember: boolean) => void;
   onModelChange: (model: string) => void;
+  onTestApiKey: (args: { apiKey: string; model: string }) => Promise<void>;
+  onCompleteOnboarding: () => void;
   onResetApp: () => void;
   onFileSelect: (file: File) => void;
   onBrandingConfigured: (branding: Branding) => void;
@@ -38,6 +42,7 @@ export default function AppLayout({
   branding,
   logoUrl,
   companyName,
+  onboardingCompleted,
   isLoadingCsv,
   loadingMessage,
   showChat,
@@ -48,6 +53,8 @@ export default function AppLayout({
   onApiKeyChange,
   onRememberKeyChange,
   onModelChange,
+  onTestApiKey,
+  onCompleteOnboarding,
   onResetApp,
   onFileSelect,
   onBrandingConfigured,
@@ -57,6 +64,10 @@ export default function AppLayout({
   apiKeyError,
   children,
 }: AppLayoutProps) {
+  // Onboarding is implemented, but temporarily disabled per request.
+  // Flip this to `true` when you want onboarding enabled again.
+  const ENABLE_ONBOARDING = false;
+
   const renderContent = () => {
     if (brandingStatus === "loading") {
       return <CenterLoading message="Initializing application..." />;
@@ -65,6 +76,21 @@ export default function AppLayout({
     if (brandingStatus !== "configured") {
       return (
         <SetupScreen onConfigured={onBrandingConfigured} onReset={onResetApp} />
+      );
+    }
+
+    if (ENABLE_ONBOARDING && !onboardingCompleted) {
+      return (
+        <OnboardingScreen
+          apiKey={apiKey}
+          rememberKey={rememberKey}
+          model={model}
+          onApiKeyChange={onApiKeyChange}
+          onRememberKeyChange={onRememberKeyChange}
+          onModelChange={onModelChange}
+          onTest={onTestApiKey}
+          onContinue={onCompleteOnboarding}
+        />
       );
     }
 

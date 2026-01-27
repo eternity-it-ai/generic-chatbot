@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -13,13 +20,16 @@ interface SetupScreenProps {
   onReset: () => void;
 }
 
-export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps) {
+export default function SetupScreen({
+  onConfigured,
+  onReset,
+}: SetupScreenProps) {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.toUpperCase().trim();
+    const value = e.target.value.toUpperCase().trim();
     // Optional: auto-insert dash if user is typing a long code
     // Assuming format XXXX-XXXX
     if (value.length === 4 && !value.includes("-")) {
@@ -40,7 +50,7 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
 
     try {
       const res = await redeemCode(code);
-      
+
       // Derive logo from domain
       const cleanDomain = res.payload.companyDomain
         .replace("https://", "")
@@ -48,11 +58,12 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
         .split("/")[0];
       const derivedLogoUrl = `https://www.google.com/s2/favicons?domain=${cleanDomain}&sz=128`;
 
-        
       // Download logo locally
       let finalLogoUrl = derivedLogoUrl;
       try {
-        const localDataUrl = await invoke<string>("download_logo", { url: derivedLogoUrl });
+        const localDataUrl = await invoke<string>("download_logo", {
+          url: derivedLogoUrl,
+        });
         finalLogoUrl = localDataUrl;
       } catch (e) {
         console.error("Failed to download logo locally:", e);
@@ -64,14 +75,18 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
         configuredAt: new Date().toISOString(),
         payload: {
           ...res.payload,
-          logoUrl: finalLogoUrl
-        }
+          logoUrl: finalLogoUrl,
+        },
       };
 
-      await invoke("save_branding", { brandingJson: JSON.stringify(brandingData) });
+      await invoke("save_branding", {
+        brandingJson: JSON.stringify(brandingData),
+      });
       onConfigured(brandingData);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +98,8 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
         <CardHeader>
           <CardTitle className="text-2xl">One-time Setup</CardTitle>
           <CardDescription>
-            Please enter your setup code to activate the application. 
-            This code was provided in your welcome email.
+            Please enter your setup code to activate the application. This code
+            was provided in your welcome email.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,9 +122,9 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
-          <Button 
-            className="w-full" 
-            size="lg" 
+          <Button
+            className="w-full"
+            size="lg"
             onClick={handleActivate}
             disabled={isLoading || !code}
           >
@@ -118,26 +133,28 @@ export default function SetupScreen({ onConfigured, onReset }: SetupScreenProps)
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Activating...
               </>
-            ) : "Activate"}
+            ) : (
+              "Activate"
+            )}
           </Button>
-          
+
           <div className="flex w-full gap-2 mt-2">
-             <Button 
-                variant="ghost" 
-                className="flex-1 text-xs text-muted-foreground"
-                onClick={onReset}
-                disabled={isLoading}
-             >
-               Reset App
-             </Button>
-             <Button 
-                variant="ghost" 
-                className="flex-1 text-xs text-muted-foreground"
-                onClick={() => window.location.reload()}
-                disabled={isLoading}
-             >
-               Try Again
-             </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 text-xs text-muted-foreground"
+              onClick={onReset}
+              disabled={isLoading}
+            >
+              Reset App
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 text-xs text-muted-foreground"
+              onClick={() => window.location.reload()}
+              disabled={isLoading}
+            >
+              Try Again
+            </Button>
           </div>
         </CardFooter>
       </Card>

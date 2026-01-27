@@ -35,17 +35,19 @@ export async function redeemCode(code: string) {
     }
 
     return await response.json();
-  } catch (error: any) {
-    if (error.name === "AbortError") {
-      throw new Error("Cannot reach server (timeout)");
-    }
-    if (
-      error instanceof TypeError &&
-      error.message.includes("Failed to fetch")
-    ) {
-      throw new Error(
-        "Cannot reach server. Please check your internet connection."
-      );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("Cannot reach server (timeout)");
+      }
+      if (
+        error instanceof TypeError &&
+        error.message.includes("Failed to fetch")
+      ) {
+        throw new Error(
+          "Cannot reach server. Please check your internet connection."
+        );
+      }
     }
     throw error;
   }

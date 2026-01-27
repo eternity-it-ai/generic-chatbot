@@ -22,6 +22,9 @@ export default function App() {
   const { criticalError, handleError, clearCriticalError, retryCriticalError } =
     useErrorHandler();
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(() =>
+    storage.getOnboardingCompleted()
+  );
 
   // Wrap backendCall to track critical errors and API key errors
   const wrappedBackendCall = useMemo(
@@ -81,18 +84,20 @@ export default function App() {
     backendCall: wrappedBackendCall,
   });
 
-  const { csvLoaded, isLoadingCsv, loadingMessage, onFileSelect } =
-    useFileManagement({
+  const {
+    csvName,
+    csvBase64,
+    csvLoaded,
+    isLoadingCsv,
+    loadingMessage,
+    onFileSelect,
+  } = useFileManagement({
       apiKey,
       model,
       backendCall: wrappedBackendCall,
       onMetadataGenerated: setMetadata,
       onMessagesSet: setMessages,
     });
-
-  // Get csvName and csvBase64 from storage for sync
-  const csvName = storage.getCsvName();
-  const csvBase64 = storage.getCsvBase64();
 
   // Sync all state to localStorage
   useStorageSync({
@@ -134,6 +139,35 @@ export default function App() {
     // Could trigger a backend health check or retry the last operation
   };
 
+  const handleTestApiKey = async (args: { apiKey: string; model: string }) => {
+    await wrappedBackendCall({
+      cmd: "validate_api_key",
+      payload: { openai_api_key: args.apiKey, model: args.model },
+    });
+  };
+
+  const handleCompleteOnboarding = () => {
+    storage.setOnboardingCompleted(true);
+    setOnboardingCompleted(true);
+  };
+
+  const handleResetApp = async () => {
+    try {
+      storage.clearStorage();
+      setOnboardingCompleted(false);
+      setApiKey("");
+      setRememberKey(false);
+      setModel(storage.getModel());
+      setMetadata(null);
+      setMessages([]);
+      setApiKeyError(null);
+    } finally {
+      // Branding reset is authoritative (also clears persisted branding via Tauri).
+      await resetBranding();
+      window.location.reload();
+    }
+  };
+
   return (
     <>
       <Toaster />
@@ -142,6 +176,7 @@ export default function App() {
         branding={branding}
         logoUrl={logoUrl}
         companyName={companyName}
+        onboardingCompleted={onboardingCompleted}
         isLoadingCsv={isLoadingCsv}
         loadingMessage={loadingMessage}
         showChat={showChat}
@@ -155,7 +190,9 @@ export default function App() {
         }}
         onRememberKeyChange={setRememberKey}
         onModelChange={setModel}
-        onResetApp={resetBranding}
+        onTestApiKey={handleTestApiKey}
+        onCompleteOnboarding={handleCompleteOnboarding}
+        onResetApp={handleResetApp}
         onFileSelect={onFileSelect}
         onBrandingConfigured={(b) => {
           setBranding(b);

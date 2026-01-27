@@ -14,6 +14,15 @@ def cmd_load_csv(payload: dict):
     return load_csv(csv_base64)
 
 
+def cmd_set_metadata(payload: dict):
+    """Restore metadata from the frontend (e.g., after app restart/update)."""
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        raise ValueError("Invalid metadata payload.")
+    set_metadata(metadata)
+    return {"ok": True}
+
+
 def cmd_generate_metadata(payload: dict):
     """Handle generate_metadata command."""
     df = get_dataframe()
@@ -127,6 +136,47 @@ def cmd_run_analysis(payload: dict):
         )
 
 
+def cmd_validate_api_key(payload: dict):
+    """Validate that the provided model + API key can make a minimal request."""
+    api_key = payload.get("openai_api_key")
+    model = payload.get("model", "gpt-4o")
+    if not api_key:
+        raise ValueError(
+            "API key is required. Please enter your OpenAI or Google API key."
+        )
+
+    try:
+        llm = get_llm(model, api_key)
+    except Exception as e:
+        error_msg = str(e).lower()
+        if (
+            "invalid" in error_msg
+            or "authentication" in error_msg
+            or "unauthorized" in error_msg
+        ):
+            raise ValueError("Invalid API key. Please check your API key and try again.")
+        if "rate limit" in error_msg or "quota" in error_msg:
+            raise ValueError("API rate limit exceeded. Please try again later.")
+        raise ValueError(f"API key error: {str(e)}")
+
+    try:
+        # A real round-trip is required; constructing the client is not sufficient.
+        # LangChain chat models accept a string and return an AIMessage-like object.
+        _ = llm.invoke("ping")
+        return {"ok": True}
+    except Exception as e:
+        error_msg = str(e).lower()
+        if (
+            "invalid" in error_msg
+            or "authentication" in error_msg
+            or "unauthorized" in error_msg
+        ):
+            raise ValueError("Invalid API key. Please check your API key and try again.")
+        if "rate limit" in error_msg or "quota" in error_msg:
+            raise ValueError("API rate limit exceeded. Please try again later.")
+        raise RuntimeError(f"API validation failed: {str(e)}")
+
+
 def handle(msg: dict):
     """Handle incoming command messages."""
     cmd = msg.get("cmd")
@@ -136,11 +186,15 @@ def handle(msg: dict):
         return "pong"
     if cmd == "load_csv":
         return cmd_load_csv(payload)
+    if cmd == "set_metadata":
+        return cmd_set_metadata(payload)
     if cmd == "generate_metadata":
         return cmd_generate_metadata(payload)
     if cmd == "get_metrics":
         return cmd_get_metrics(payload)
     if cmd == "run_analysis":
         return cmd_run_analysis(payload)
+    if cmd == "validate_api_key":
+        return cmd_validate_api_key(payload)
 
     raise ValueError(f"Unknown cmd: {cmd}")

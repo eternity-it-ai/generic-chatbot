@@ -41,7 +41,8 @@ export function useBranding() {
   }, []);
 
   useEffect(() => {
-    loadBranding();
+    // Defer state updates to avoid doing them synchronously in the effect body.
+    void Promise.resolve().then(() => loadBranding());
   }, [loadBranding]);
 
   return {

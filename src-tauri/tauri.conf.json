@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "eternity-ai",
-  "version": "0.2.0",
+  "version": "0.5.3",
   "identifier": "com.eternity-ai.app",
   "build": {
     "frontendDist": "../dist",
@@ -44,6 +44,7 @@
     "externalBin": ["bin/backend"],
     "windows": {
       "nsis": {
+        "template": "windows/installer.nsi",
         "installerIcon": "icons/icon.ico",
         "headerImage": "icons/Square150x150Logo.png",
         "sidebarImage": "icons/Square310x310Logo.png",
@@ -55,7 +56,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://raw.githubusercontent.com/yotam-aman/EternityAi-Ai-Agent-versions/main/update.json"
+        "https://raw.githubusercontent.com/eternity-it-ai/EternityAi-Ai-Agent-versions/main/update.json"
       ],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU5OEU4M0Q5OTY1RjcxRjYKUldUMmNWK1cyWU9PNmJRUlltTEF0OHpZR3Vacm1FR3JnMGFWMkxOQi9UMkdSeENIM0NnekVnUXAK"

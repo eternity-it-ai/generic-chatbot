@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   API_KEY: "app_api_key",
   REMEMBER_KEY: "app_remember_key",
   MODEL: "app_model",
+  ONBOARDING_COMPLETED: "app_onboarding_completed",
   COMPANY_NAME: "app_company_name",
   COMPANY_URL: "app_company_url",
   LOGO_URL: "app_logo_url",
@@ -81,6 +82,12 @@ export const storage = {
   // Model
   getModel: (): string => loadFromStorage<string>(STORAGE_KEYS.MODEL) ?? "gpt-4o",
   setModel: (value: string): void => saveToStorage(STORAGE_KEYS.MODEL, value),
+
+  // Onboarding
+  getOnboardingCompleted: (): boolean =>
+    loadFromStorage<boolean>(STORAGE_KEYS.ONBOARDING_COMPLETED) ?? false,
+  setOnboardingCompleted: (value: boolean): void =>
+    saveToStorage(STORAGE_KEYS.ONBOARDING_COMPLETED, value),
 
   // Bot persona
   getBotId: (): BotId =>

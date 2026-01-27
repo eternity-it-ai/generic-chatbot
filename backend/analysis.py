@@ -1,6 +1,8 @@
 """Analysis functions."""
 import json
 import re
+import ast
+import textwrap
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
@@ -30,8 +32,33 @@ RULES:
 
 Return ONLY JSON: {{"plan": "logic", "python_code": "code"}}
 """
-    plan_res = llm.invoke(plan_prompt).content
-    plan_json = json.loads(re.search(r"\{.*\}", plan_res, re.DOTALL).group())
+    def _extract_json(text: str) -> dict:
+        """Extract the first JSON object from an LLM response."""
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if not m:
+            raise ValueError("LLM returned no JSON.")
+        return json.loads(m.group())
+
+    def _sanitize_python(code: str) -> str:
+        """Normalize LLM python output (strip fences, dedent, strip)."""
+        if not isinstance(code, str):
+            raise ValueError("python_code must be a string.")
+
+        s = code.strip()
+
+        # Strip markdown fences if present.
+        if s.startswith("```"):
+            # Remove opening fence line (``` or ```python)
+            s = re.sub(r"^```[a-zA-Z0-9_-]*\s*\n", "", s)
+            # Remove trailing fence
+            s = re.sub(r"\n```$", "", s)
+
+        s = textwrap.dedent(s).strip()
+        return s
+
+    def _validate_python(code: str) -> None:
+        """Parse Python to catch syntax errors early (e.g., unexpected indent)."""
+        ast.parse(code, filename="<analysis_code>", mode="exec")
 
     exec_scope = {
         "df": df,
@@ -40,7 +67,94 @@ Return ONLY JSON: {{"plan": "logic", "python_code": "code"}}
         "datetime": datetime,
         "timedelta": timedelta,
     }
-    exec(plan_json["python_code"], {}, exec_scope)
+
+    # Provide a small set of safe builtins for basic operations.
+    exec_scope["__builtins__"] = {
+        "len": len,
+        "sum": sum,
+        "min": min,
+        "max": max,
+        "sorted": sorted,
+        "round": round,
+        "abs": abs,
+        "range": range,
+        "enumerate": enumerate,
+        "list": list,
+        "dict": dict,
+        "set": set,
+        "tuple": tuple,
+        "float": float,
+        "int": int,
+        "str": str,
+        "bool": bool,
+    }
+
+    # Plan + execute with self-healing retries on codegen failures.
+    max_attempts = 3
+    last_exc: Exception | None = None
+    last_code: str | None = None
+
+    for attempt in range(max_attempts):
+        try:
+            if attempt == 0:
+                plan_res = llm.invoke(plan_prompt).content
+                plan_json = _extract_json(plan_res)
+                python_code = plan_json.get("python_code", "")
+            else:
+                exc = last_exc or RuntimeError("unknown execution error")
+                fix_prompt = f"""
+You are fixing LLM-generated Python that is executed with:
+- df (pandas DataFrame)
+- pd (pandas)
+- np (numpy)
+- datetime, timedelta
+
+The previous code FAILED during execution.
+
+USER QUERY: {query}
+INDUSTRY: {metadata.get('industry')}
+COLUMN CONTEXT: {rich_context}
+
+ERROR TYPE: {type(exc).__name__}
+ERROR MESSAGE: {str(exc)}
+
+PREVIOUS CODE:
+{last_code}
+
+RULES:
+1. Do NOT import anything.
+2. Do NOT define functions/classes.
+3. ONLY use df/pd/np/datetime/timedelta.
+4. MUST assign the final answer to a variable named result.
+5. Return ONLY JSON: {{"python_code": "..."}} (no markdown, no backticks).
+""".strip()
+                fix_res = llm.invoke(fix_prompt).content
+                fix_json = _extract_json(fix_res)
+                python_code = fix_json.get("python_code", "")
+
+            code = _sanitize_python(python_code)
+            _validate_python(code)
+            last_code = code
+
+            # IMPORTANT: use exec_scope as BOTH globals and locals so that
+            # names like pd/np remain visible even if the code defines lambdas/functions.
+            exec(code, exec_scope, exec_scope)
+
+            if "result" not in exec_scope:
+                raise RuntimeError("Generated code did not set `result`.")
+
+            break
+        except Exception as e:
+            last_exc = e
+            # Try again with an error-aware fix prompt
+            continue
+    else:
+        # Exhausted retries
+        exc = last_exc or RuntimeError("unknown execution error")
+        raise RuntimeError(
+            f"Auto-analysis failed after {max_attempts} attempts: {type(exc).__name__}: {exc}"
+        )
+
     res_data = exec_scope.get("result", "No data generated.")
 
     chosen_bot_id = normalize_bot_id(bot_id)

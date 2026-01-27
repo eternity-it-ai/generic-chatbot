@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { arrayBufferToBase64 } from "@/shared/utils/backend";
 import type { Metadata, Message } from "@/shared/types";
 import { storage } from "@/shared/utils/storage";
-import { showError, showAppError } from "@/shared/errors/toastService";
+import { showAppError } from "@/shared/errors/toastService";
 import { toAppError, ErrorCode } from "@/shared/errors/errorUtils";
 
 interface UseFileManagementProps {
@@ -204,9 +204,6 @@ export function useFileManagement({
     setIsLoadingCsv(true);
     try {
       await generateMetadata();
-    } catch (e: unknown) {
-      // Error already shown via toast in generateMetadata
-      throw e;
     } finally {
       setIsLoadingCsv(false);
     }
@@ -224,13 +221,22 @@ export function useFileManagement({
         try {
           await loadCsvToBackend(csvBase64);
 
-          // Auto-generate metadata if API key is available
+          // Restore cached metadata (avoid re-generating on every restart/update)
           const existingMetadata = storage.getMetadata<Metadata>();
-          if (apiKey && existingMetadata) {
-            setLoadingMessage("Regenerating metadata...");
+          if (existingMetadata) {
+            setLoadingMessage("Restoring metadata...");
             onMetadataGenerated(existingMetadata);
-            await generateMetadata();
-          } else if (apiKey && !existingMetadata) {
+            try {
+              // Rehydrate backend state so chat/analysis works immediately
+              await backendCall({
+                cmd: "set_metadata",
+                payload: { metadata: existingMetadata },
+              });
+            } catch {
+              // If this fails, the automatic retry in `useBackend` can still recover later.
+            }
+          } else if (apiKey) {
+            // No cached metadata -> generate once (LLM call)
             await generateMetadata();
           }
         } catch (e: unknown) {

@@ -5,9 +5,21 @@ import {
   ETERNITY_LOGO_URL,
   ETERNITY_COMPANY_NAME,
 } from "@/features/branding/constants/branding";
-import { Sparkles, Key, Brain, ChevronDown } from "lucide-react";
+import {
+  Sparkles,
+  Key,
+  Brain,
+  ChevronDown,
+  RefreshCw,
+  Download,
+} from "lucide-react";
 import { open } from "@tauri-apps/plugin-shell";
 import { FieldError } from "@/shared/ui/field";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { getVersion } from "@tauri-apps/api/app";
+import { Button } from "@/shared/ui/button";
+import { Progress } from "@/shared/ui/progress";
+import { showError, showInfo, showSuccess } from "@/shared/errors/toastService";
 
 interface SettingsSidebarProps {
   apiKey: string;
@@ -30,10 +42,166 @@ export default function SettingsSidebar({
   onApiKeyChange,
   onRememberKeyChange,
   onModelChange,
-  branding,
-  logoUrl,
+  branding: _branding,
+  logoUrl: _logoUrl,
   apiKeyError,
 }: SettingsSidebarProps) {
+  const URL_UPGRADES = "https://www.eternityglobalgroup.com/ai-agent";
+  // Branding UI is currently disabled (see commented section below), but we keep
+  // these props to avoid breaking callers.
+  void _branding;
+  void _logoUrl;
+  const [appVersion, setAppVersion] = useState<string>("");
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [availableUpdate, setAvailableUpdate] = useState<Update | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  const [downloadProgressPercent, setDownloadProgressPercent] = useState<
+    number | null
+  >(null);
+  const [fakeDownloadProgressPercent, setFakeDownloadProgressPercent] =
+    useState<number | null>(null);
+  const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getVersion()
+      .then((v) => {
+        if (!cancelled) setAppVersion(v);
+      })
+      .catch(() => {
+        // Non-fatal; UI will just omit the version string.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // If the updater doesn't report a percent, we still show user-facing progress.
+  useEffect(() => {
+    if (!isDownloadingUpdate) {
+      setFakeDownloadProgressPercent(null);
+      return;
+    }
+
+    if (downloadProgressPercent !== null) {
+      setFakeDownloadProgressPercent(null);
+      return;
+    }
+
+    // Start with a visible amount and ease toward ~90%.
+    setFakeDownloadProgressPercent((v) => (typeof v === "number" ? v : 5));
+
+    const id = window.setInterval(() => {
+      setFakeDownloadProgressPercent((prev) => {
+        const current = typeof prev === "number" ? prev : 5;
+        if (current >= 90) return 90;
+        // Slow down as we approach 90
+        const step = Math.max(0.5, (90 - current) / 18);
+        return Math.min(90, current + step);
+      });
+    }, 250);
+
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [isDownloadingUpdate, downloadProgressPercent]);
+
+  const extractPercent = (progress: unknown): number | null => {
+    if (typeof progress !== "object" || progress === null) return null;
+    const record = progress as Record<string, unknown>;
+
+    const clamp = (n: number) => Math.max(0, Math.min(100, n));
+
+    if (typeof record.percent === "number" && Number.isFinite(record.percent)) {
+      return clamp(record.percent);
+    }
+
+    if (
+      typeof record.downloaded === "number" &&
+      typeof record.total === "number" &&
+      Number.isFinite(record.downloaded) &&
+      Number.isFinite(record.total) &&
+      record.total > 0
+    ) {
+      return clamp((record.downloaded / record.total) * 100);
+    }
+
+    if (typeof record.data === "object" && record.data !== null) {
+      const data = record.data as Record<string, unknown>;
+      if (
+        typeof data.downloaded === "number" &&
+        typeof data.total === "number" &&
+        Number.isFinite(data.downloaded) &&
+        Number.isFinite(data.total) &&
+        data.total > 0
+      ) {
+        return clamp((data.downloaded / data.total) * 100);
+      }
+    }
+
+    return null;
+  };
+
+  const handleCheckForUpdates = async () => {
+    if (isCheckingUpdates || isDownloadingUpdate) return;
+    setIsCheckingUpdates(true);
+    setDownloadProgressPercent(null);
+    setFakeDownloadProgressPercent(null);
+    setIsUpdateDownloaded(false);
+    try {
+      const update = await check();
+      setLastCheckedAt(new Date());
+      setAvailableUpdate(update ?? null);
+
+      if (update) {
+        showInfo(`Update ${update.version} is available`, {
+          title: "Update available",
+        });
+      } else {
+        showSuccess("You’re up to date.", { title: "No updates" });
+      }
+    } catch (err) {
+      setLastCheckedAt(new Date());
+      setAvailableUpdate(null);
+      showError(err, { title: "Update check failed" });
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    if (
+      !availableUpdate ||
+      isCheckingUpdates ||
+      isDownloadingUpdate ||
+      isUpdateDownloaded
+    )
+      return;
+
+    setIsDownloadingUpdate(true);
+    setDownloadProgressPercent(null);
+    setFakeDownloadProgressPercent(null);
+    try {
+      await availableUpdate.download((progress) => {
+        const pct = extractPercent(progress);
+        if (pct !== null) setDownloadProgressPercent(pct);
+      });
+      setIsUpdateDownloaded(true);
+      showInfo("Installing update and restarting…", {
+        title: "Installing update",
+      });
+
+      // Install immediately; updater will relaunch the app.
+      await availableUpdate.install();
+    } catch (err) {
+      setIsUpdateDownloaded(false);
+      showError(err, { title: "Update download failed" });
+    } finally {
+      setIsDownloadingUpdate(false);
+    }
+  };
+
   // Clear error when user starts typing
   const handleApiKeyChange = (key: string) => {
     onApiKeyChange(key);
@@ -61,7 +229,7 @@ export default function SettingsSidebar({
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
           {/* Client Branding - Dynamic */}
-          {branding && (
+          {/* {branding && (
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 mb-6">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Managed Instance
@@ -88,7 +256,7 @@ export default function SettingsSidebar({
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Upgrades Section */}
           <div>
@@ -104,7 +272,7 @@ export default function SettingsSidebar({
                     onClick={async (e) => {
                       e.preventDefault(); // Prevent any default behavior
                       const path = feature.toLowerCase().replace(/ /g, "-");
-                      await open(`https://eternity.ai/${path}`);
+                      await open(`${URL_UPGRADES}?feature=${path}`);
                     }}
                   >
                     <input
@@ -200,6 +368,113 @@ export default function SettingsSidebar({
                 </p>
               )}
             </details>
+          </div>
+
+          {/* Updates */}
+          <div className="border-t border-gray-200 pt-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <RefreshCw className="w-5 h-5 mr-2 text-gray-600" /> Updates
+            </h2>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-700">
+                <span className="font-medium">Current version:</span>{" "}
+                <span className="font-mono">{appVersion || "—"}</span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCheckForUpdates}
+                  disabled={isCheckingUpdates || isDownloadingUpdate}
+                >
+                  {isCheckingUpdates ? "Checking…" : "Check for updates"}
+                </Button>
+
+                {availableUpdate && (
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          Update available:{" "}
+                          <span className="font-mono">
+                            {availableUpdate.version}
+                          </span>
+                        </p>
+                        {availableUpdate.body && (
+                          <p className="mt-1 text-xs text-gray-600 whitespace-pre-wrap">
+                            {availableUpdate.body}
+                          </p>
+                        )}
+                      </div>
+                      <Download className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {!isUpdateDownloaded ? (
+                        <Button
+                          type="button"
+                          onClick={handleDownloadUpdate}
+                          disabled={
+                            isCheckingUpdates ||
+                            isDownloadingUpdate ||
+                            isUpdateDownloaded
+                          }
+                        >
+                          {isDownloadingUpdate
+                            ? "Downloading…"
+                            : "Download and restart"}
+                        </Button>
+                      ) : (
+                        <Button type="button" disabled>
+                          Installing… (app will restart)
+                        </Button>
+                      )}
+
+                      {(isDownloadingUpdate ||
+                        downloadProgressPercent !== null ||
+                        fakeDownloadProgressPercent !== null) && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Downloading</span>
+                            <span>
+                              {downloadProgressPercent !== null
+                                ? `${Math.round(downloadProgressPercent)}%`
+                                : fakeDownloadProgressPercent !== null
+                                ? `${Math.round(fakeDownloadProgressPercent)}%`
+                                : "—"}
+                            </span>
+                          </div>
+                          <Progress
+                            value={
+                              downloadProgressPercent ??
+                              fakeDownloadProgressPercent ??
+                              0
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {isUpdateDownloaded && (
+                        <p className="text-xs text-gray-500">
+                          Installing the update now. The app will relaunch
+                          automatically.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!availableUpdate &&
+                  lastCheckedAt &&
+                  !isCheckingUpdates &&
+                  !isDownloadingUpdate && (
+                    <p className="text-xs text-gray-500">
+                      Last checked: {lastCheckedAt.toLocaleString()}
+                    </p>
+                  )}
+              </div>
+            </div>
           </div>
         </div>{" "}
         {/* Closes space-y-6 */}

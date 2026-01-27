@@ -15,17 +15,18 @@ export const DEFAULT_BOT_ID: BotId = "c_level_executive";
 export const BOT_DEFINITIONS: Record<BotId, BotDefinition> = {
   c_level_executive: {
     id: "c_level_executive",
-    label: "C‑Level Executive",
-    description: "Brief, decision-oriented insights with risks and next actions.",
+    label: "Business Analyst ",
+    description:
+      "Brief, decision-oriented insights with risks and next actions.",
     icon: "briefcase",
     inputPlaceholder: "Ask for an executive summary...",
   },
   data_analyst: {
     id: "data_analyst",
     label: "Data Analyst",
-    description: "More technical, methodical analysis with assumptions and follow-ups.",
+    description:
+      "More technical, methodical analysis with assumptions and follow-ups.",
     icon: "chart",
     inputPlaceholder: "Ask for analysis (metrics, breakdowns, methodology)...",
   },
 };
-
